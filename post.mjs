@@ -133,7 +133,11 @@ if (dry) {
   if (page) {
     try {
       const { name } = await graph('GET', `/${page}`, { fields: 'name' }, await getPageToken());
-      console.log(`Dry run: token can post to the Facebook Page "${name}".`);
+      const { data } = await graph('GET', '/me/permissions');
+      const granted = data.filter(x => x.status === 'granted').map(x => x.permission);
+      const missing = ['pages_manage_posts', 'pages_read_engagement', 'instagram_content_publish'].filter(x => !granted.includes(x));
+      if (missing.length) throw new Error(`token is missing ${missing.join(', ')}`);
+      console.log(`Dry run: token can post to the Facebook Page "${name}" (pages_manage_posts granted).`);
     } catch (e) { console.log(`Dry run: Facebook Page NOT ready: ${e.message}`); process.exitCode = 1; }
   }
   if (jobs[0]) console.log(`Dry run: would publish day ${jobs[0].p.day} to ${jobs[0].pl} now.`);
