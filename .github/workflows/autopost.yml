@@ -32,14 +32,16 @@ jobs:
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
           IG_USER_ID: '17841418777747517'
+          FB_PAGE_ID: '1299544016584716'
+          FACEBOOK_ENABLED: ${{ vars.FACEBOOK_ENABLED }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
       - name: Save what was posted
         if: always()
         run: |
-          if [ -n "$(git status --porcelain posted.json)" ]; then
+          if [ -n "$(git status --porcelain posted.json posted-facebook.json)" ]; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add posted.json
+            git add posted.json posted-facebook.json
             git commit -m 'chore: record published post'
             git push
           fi
