@@ -1,0 +1,45 @@
+name: Instagram autopost
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: check images and token, publish nothing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autopost
+  cancel-in-progress: false
+
+jobs:
+  post:
+    # Scheduled runs only post when the repo variable AUTOPOST_ENABLED is "true" (the kill switch).
+    if: github.event_name == 'workflow_dispatch' || vars.AUTOPOST_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Publish the next due post
+        run: node post.mjs
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          IG_USER_ID: '17841418777747517'
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      - name: Save what was posted
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain posted.json)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add posted.json
+            git commit -m 'chore: record published post'
+            git push
+          fi
